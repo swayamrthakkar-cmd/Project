@@ -4,7 +4,7 @@ import chess.engine
 # Standard Algebric Notation (SAN)
 # Universal Chess Interface (UCI)
 
-# Download Stockfish
+# Download Stockfish from https://stockfishchess.org/download/
 
 with chess.engine.SimpleEngine.popen_uci("STOCKFISH") as engine:
     board = chess.Board()
