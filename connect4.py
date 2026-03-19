@@ -13,13 +13,7 @@ board = [
 for row in board:
     print(f'{row}\n')
 
-a_file = []
-b_file = []
-c_file = []
-d_file = []
-e_file = []
-f_file = []
-g_file = []
+heights = [0, 0, 0, 0, 0, 0, 0]
 
 def check_winner(board):
     ROWS = 6
@@ -52,37 +46,18 @@ def check_winner(board):
     return None
 
 while True:
-    user_input = input('Move: ')
+    user_input = int(input('Move (1-7): '))
 
-    if len(user_input) != 1:
+    if user_input not in [1,2,3,4,5,6,7]:
         sys.exit('Invalid Input')
 
-    if user_input not in ['a', 'b', 'c', 'd', 'e', 'f', 'g']:
-        sys.exit('Invalid Input')
+    col = user_input - 1
 
-    if user_input == 'a' and len(a_file) < 6:
-        a_file.append('x')
-        board[5 - (len(a_file)-1)][0] = 'x'
-    elif user_input == 'b' and len(b_file) < 6:
-        b_file.append('x')
-        board[5 - (len(b_file)-1)][1] = 'x'
-    elif user_input == 'c' and len(c_file) < 6:
-        c_file.append('x')
-        board[5 - (len(c_file)-1)][2] = 'x'
-    elif user_input == 'd' and len(d_file) < 6:
-        d_file.append('x')
-        board[5 - (len(d_file)-1)][3] = 'x'
-    elif user_input == 'e' and len(e_file) < 6:
-        e_file.append('x')
-        board[5 - (len(e_file)-1)][4] = 'x'
-    elif user_input == 'f' and len(f_file) < 6:
-        f_file.append('x')
-        board[5 - (len(f_file)-1)][5] = 'x'
-    elif user_input == 'g' and len(g_file) < 6:
-        g_file.append('x')
-        board[5 - (len(g_file)-1)][6] = 'x'
-    else:
-        sys.exit('Invalid Input')
+    if heights[col] >= 6:
+        sys.exit('Column full')
+
+    board[5 - heights[col]][col] = 'x'
+    heights[col] += 1
 
     winner = check_winner(board)
 
