@@ -121,7 +121,7 @@ def register_command():
             return re.match(pattern, email)
 
         sender_email = 'swayam.r.thakkar@gmail.com'
-        app_password = 'ovxu lgpj qpnf nuiv'
+        app_password = 'xxxx xxxx xxxx xxxx'
 
         error_label = tk.Label(register_frame, text='Email does not exist', fg="red")
         error_label.place(x=50, y=250)
