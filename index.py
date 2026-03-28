@@ -133,7 +133,7 @@ def register_command():
             msg["To"] = email
             msg["Subject"] = "Registration Confirmation"
 
-            body = f"Hi {first_name}, welcome to Lumos!"
+            body = f"Hi {first_name}, This is a confirmation email for your registration on Lumos Dynamicity. If this was you, ignore this email, sit back, relax and enjoy the rest of your day, but if this was not you, please contact us immediately at 'swayam.r.thakkar@gmail.com',\n\nThanks,\nLumos Support Team."
             msg.attach(MIMEText(body, "plain"))
 
             with smtplib.SMTP("smtp.gmail.com", 587) as server:
