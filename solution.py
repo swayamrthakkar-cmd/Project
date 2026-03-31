@@ -13,4 +13,4 @@ class solution:
                     count += 1
             i += 1
 
-        print(count)
+        return count
