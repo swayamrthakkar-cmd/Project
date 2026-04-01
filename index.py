@@ -125,7 +125,7 @@ def register_command():
 
         # SEND EMAIL
         try:
-            sender_email = "swayam.r.thakkar@gmail.com"
+            sender_email = "xxxxxxxxxxxxxxxx"
             app_password = "xxxx xxxx xxxx xxxx"  # NO SPACES
 
             msg = MIMEMultipart()
