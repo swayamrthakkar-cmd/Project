@@ -1,4 +1,3 @@
-
 name: Build SwayChat IPA
 
 on:
@@ -19,6 +18,9 @@ jobs:
           target: ipa
           working-directory: chatapp
           archive-output: false
+          # Highlight-start
+          no-sign: true
+          # Highlight-end
 
       - name: Find IPA
         id: ipa
