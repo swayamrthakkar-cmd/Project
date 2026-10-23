@@ -1,0 +1,29 @@
+
+name: Build Flet iOS App
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Flet iOS app
+        uses: flet-dev/flet-build-action@v1
+        with:
+          target: ipa
+          working-directory: chatapp
+          extra-args: "--module-name src.main"
+          archive-output: true
+
+      - name: Upload iOS build
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swaychat-ios-build
+          path: chatapp/build/ipa/
+          if-no-files-found: warn
