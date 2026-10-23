@@ -1,3 +1,4 @@
+
 name: Build Flet iOS App
 
 on:
@@ -18,10 +19,27 @@ jobs:
           working-directory: chatapp
           archive-output: true
 
-      - name: Upload iOS build
-        if: success()
+      - name: Find and print iOS build file paths
+        if: always()
+        run: |
+          echo "===== Searching chatapp/build ====="
+          if [ -d "chatapp/build" ]; then
+            find chatapp/build -type f -print
+          else
+            echo "chatapp/build does not exist"
+          fi
+
+          echo "===== Searching for IPA and ZIP files ====="
+          find "$GITHUB_WORKSPACE" "$RUNNER_TEMP" \
+            -type f \( -iname "*.ipa" -o -iname "*.zip" \) \
+            -print 2>/dev/null || true
+
+      - name: Upload iOS build files
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: swaychat-ios-build
-          path: chatapp/build/ipa/
+          path: |
+            chatapp/build/ipa/
+            ${{ runner.temp }}/flet-build-action-archives/ipa/
           if-no-files-found: warn
