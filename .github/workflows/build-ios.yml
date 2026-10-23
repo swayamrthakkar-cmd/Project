@@ -18,29 +18,13 @@ jobs:
           target: ipa
           working-directory: chatapp
           archive-output: false
-          # Highlight-start
           no-sign: true
-          # Highlight-end
 
-      - name: Find IPA
-        id: ipa
-        shell: bash
-        run: |
-          IPA=$(find chatapp/build/ipa -type f -name "*.ipa" -print -quit)
-
-          if [ -z "$IPA" ]; then
-            echo "No IPA was generated."
-            echo "Build output:"
-            find chatapp/build/ipa -maxdepth 5 -print
-            exit 1
-          fi
-
-          echo "path=$IPA" >> "$GITHUB_OUTPUT"
-          echo "Found IPA: $IPA"
-
-      - name: Upload IPA
+      - name: Find and Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: swaychat-ipa
-          path: ${{ steps.ipa.outputs.path }}
+          # This pattern searches recursively through your entire repository 
+          # for any file ending in .ipa, bypassing rigid path mistakes.
+          path: "**/*.ipa"
           if-no-files-found: error
