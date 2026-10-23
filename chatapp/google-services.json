@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "970149861866",
+    "project_id": "android-app-58415",
+    "storage_bucket": "android-app-58415.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:970149861866:android:1f1e7390ff3781ec75ba93",
+        "android_client_info": {
+          "package_name": "com.swayamthakkar.swaychat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAPeqM7sdh0m7AniF6SKz5XM5gmMgharGM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

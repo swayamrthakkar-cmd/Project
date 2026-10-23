@@ -1,0 +1,38 @@
+
+[project]
+name = "chatapp"
+version = "0.1.0"
+description = "SwayChat messaging app"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "Swayam Thakkar" }
+]
+dependencies = [
+    "flet>=1.0.4",
+    "httpx>=0.27.0",
+]
+
+[dependency-groups]
+dev = [
+    "flet-cli>=1.0.4",
+    "flet-desktop>=1.0.4",
+    "flet-web>=1.0.4",
+    "flet[test]>=1.0.4",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.flet]
+org = "com.swayamthakkar"
+product = "swaychat"
+company = "SwayChat"
+copyright = "Copyright (C) 2026 SwayChat"
+bundle_id = "com.swayamthakkar.swaychat"
+
+[tool.flet.app]
+path = "src"
+module = "main"

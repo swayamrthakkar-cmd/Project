@@ -1,0 +1,22 @@
+name: Build Flet iOS App
+on: 
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build Flet App
+        uses: flet-dev/flet-build-action@v1
+        with:
+          target: ipa
+          # Changed from project-path to working-directory
+          working-directory: chatapp 
