@@ -1,4 +1,3 @@
-
 import asyncio
 
 import flet as ft
@@ -11,8 +10,13 @@ REQUEST_TIMEOUT = 12.0
 
 async def main(page: ft.Page):
     page.title = "SwayChat"
-    page.window.width = 700
-    page.window.height = 780
+
+    # Window sizing is useful on desktop; iOS will use its normal screen size.
+    try:
+        page.window.width = 700
+        page.window.height = 780
+    except (AttributeError, TypeError):
+        pass
 
     client = httpx.AsyncClient(timeout=REQUEST_TIMEOUT)
 
@@ -20,6 +24,7 @@ async def main(page: ft.Page):
         "closed": False,
         "chat_open": False,
         "session_token": None,
+        "chat_generation": 0,
     }
 
     def set_status(control, message, color=None):
@@ -45,6 +50,14 @@ async def main(page: ft.Page):
 
     auth_status = ft.Text()
 
+    async def return_to_login(message="Session expired. Please log in again."):
+        """Invalidate the current local session and show the login screen."""
+        app_state["chat_open"] = False
+        app_state["session_token"] = None
+        password.value = ""
+        set_status(auth_status, message, ft.Colors.RED)
+        show_login()
+
     async def auth(endpoint: str):
         auth_status.value = ""
 
@@ -69,7 +82,6 @@ async def main(page: ft.Page):
 
         login_button.disabled = True
         register_button.disabled = True
-
         auth_status.value = "Connecting..."
         auth_status.color = ft.Colors.BLUE
         page.update()
@@ -77,10 +89,7 @@ async def main(page: ft.Page):
         try:
             response = await client.post(
                 f"{API_BASE}/{endpoint}",
-                json={
-                    "username": name,
-                    "password": pw,
-                },
+                json={"username": name, "password": pw},
             )
 
             try:
@@ -88,7 +97,8 @@ async def main(page: ft.Page):
             except ValueError:
                 data = {}
 
-            if response.status_code != 200:
+            # Accept any successful 2xx response, not just HTTP 200.
+            if not 200 <= response.status_code < 300:
                 detail = data.get(
                     "detail",
                     f"Server returned HTTP {response.status_code}.",
@@ -97,7 +107,6 @@ async def main(page: ft.Page):
                 return
 
             session_token = data.get("token")
-
             if not session_token:
                 set_status(
                     auth_status,
@@ -115,14 +124,12 @@ async def main(page: ft.Page):
                 "The server took too long to respond. Try again.",
                 ft.Colors.RED,
             )
-
-        except httpx.HTTPError as exc:
+        except httpx.HTTPError:
             set_status(
                 auth_status,
-                f"Could not reach the server: {exc}",
+                "Could not reach the server. Check your connection and try again.",
                 ft.Colors.RED,
             )
-
         finally:
             login_button.disabled = False
             register_button.disabled = False
@@ -135,15 +142,11 @@ async def main(page: ft.Page):
         await auth("register")
 
     login_button = ft.Button("Log in", on_click=do_login)
-    register_button = ft.TextButton(
-        "Create account",
-        on_click=do_register,
-    )
+    register_button = ft.TextButton("Create account", on_click=do_register)
 
     def show_login():
         app_state["chat_open"] = False
         page.clean()
-
         page.add(
             ft.Container(
                 content=ft.Column(
@@ -173,6 +176,8 @@ async def main(page: ft.Page):
         page.update()
 
     async def show_chat(token: str, me: str):
+        app_state["chat_generation"] += 1
+        generation = app_state["chat_generation"]
         app_state["chat_open"] = True
 
         messages_view = ft.ListView(
@@ -180,30 +185,32 @@ async def main(page: ft.Page):
             spacing=8,
             auto_scroll=True,
         )
-
         message_box = ft.TextField(
             hint_text="Type a message...",
             expand=True,
             shift_enter=True,
             multiline=False,
         )
-
         chat_status = ft.Text(size=12)
-
         headers = {"Authorization": f"Bearer {token}"}
 
         state = {
             "last_id": 0,
             "active": True,
-            "initial_loading": True,
         }
-
         poll_lock = asyncio.Lock()
+
+        def is_current_chat():
+            return (
+                state["active"]
+                and app_state["chat_open"]
+                and app_state["chat_generation"] == generation
+                and not app_state["closed"]
+            )
 
         def make_message(item):
             author = item.get("user", "Unknown")
             body = item.get("text", "")
-
             return ft.Container(
                 content=ft.Text(
                     f'{"You" if author == me else author}: {body}',
@@ -220,7 +227,7 @@ async def main(page: ft.Page):
 
         async def fetch_new():
             async with poll_lock:
-                if not state["active"]:
+                if not is_current_chat():
                     return
 
                 try:
@@ -229,31 +236,33 @@ async def main(page: ft.Page):
                         params={"after": state["last_id"]},
                         headers=headers,
                     )
-
-                    if response.status_code == 401:
-                        state["active"] = False
-                        app_state["chat_open"] = False
-                        app_state["session_token"] = None
-
-                        set_status(
-                            auth_status,
-                            "Session expired. Please log in again.",
-                            ft.Colors.RED,
-                        )
-                        show_login()
-                        return
-
-                    if response.status_code != 200:
-                        return
-
-                    new_messages = response.json()
-
                 except (httpx.HTTPError, ValueError):
+                    # Keep polling; a temporary network issue should not crash the app.
+                    return
+
+                if not is_current_chat():
+                    return
+
+                if response.status_code == 401:
+                    state["active"] = False
+                    await return_to_login()
+                    return
+
+                if response.status_code != 200:
+                    return
+
+                try:
+                    new_messages = response.json()
+                except ValueError:
+                    return
+
+                if not isinstance(new_messages, list):
                     return
 
                 changed = False
-
                 for item in new_messages:
+                    if not isinstance(item, dict):
+                        continue
                     try:
                         message_id = int(item.get("id", 0))
                     except (TypeError, ValueError):
@@ -266,17 +275,20 @@ async def main(page: ft.Page):
                     state["last_id"] = message_id
                     changed = True
 
-                if changed and state["active"]:
+                if changed and is_current_chat():
                     page.update()
 
         async def poll():
-            while state["active"] and not app_state["closed"]:
+            while is_current_chat():
                 await fetch_new()
-                await asyncio.sleep(POLL_SECONDS)
+                if is_current_chat():
+                    await asyncio.sleep(POLL_SECONDS)
 
         async def send_message(e):
-            body = (message_box.value or "").strip()
+            if not is_current_chat():
+                return
 
+            body = (message_box.value or "").strip()
             if not body:
                 return
 
@@ -291,42 +303,49 @@ async def main(page: ft.Page):
                 )
 
                 if response.status_code == 401:
-                    chat_status.value = (
-                        "Session expired. Please log in again."
-                    )
-                    chat_status.color = ft.Colors.RED
+                    state["active"] = False
+                    await return_to_login()
+                    return
 
-                elif response.status_code != 200:
+                if not 200 <= response.status_code < 300:
                     try:
                         detail = response.json().get(
                             "detail",
                             "Message failed to send.",
                         )
-                    except ValueError:
+                    except (ValueError, AttributeError):
                         detail = "Message failed to send."
 
                     chat_status.value = str(detail)
                     chat_status.color = ft.Colors.RED
+                    return
 
-                else:
-                    message_box.value = ""
-                    chat_status.value = ""
-                    await fetch_new()
+                message_box.value = ""
+                chat_status.value = ""
+                # Fetch immediately so the sent message appears without waiting
+                # for the next polling interval.
+                await fetch_new()
 
-            except httpx.HTTPError:
-                chat_status.value = (
-                    "Network error: message was not sent."
-                )
+            except httpx.TimeoutException:
+                chat_status.value = "The server took too long to respond. Try again."
                 chat_status.color = ft.Colors.RED
-
+            except httpx.HTTPError:
+                chat_status.value = "Network error: message was not sent."
+                chat_status.color = ft.Colors.RED
             finally:
-                message_box.disabled = False
-                page.update()
+                # Do not update controls from an old chat screen after logout.
+                if is_current_chat():
+                    message_box.disabled = False
+                    page.update()
 
         async def logout(e):
+            if not is_current_chat():
+                return
+
             state["active"] = False
             app_state["chat_open"] = False
             app_state["session_token"] = None
+            password.value = ""
 
             try:
                 await client.post(
@@ -334,9 +353,9 @@ async def main(page: ft.Page):
                     headers=headers,
                 )
             except httpx.HTTPError:
+                # Local logout still succeeds if the server cannot be reached.
                 pass
 
-            password.value = ""
             show_login()
 
         message_box.on_submit = send_message
@@ -376,30 +395,30 @@ async def main(page: ft.Page):
         )
         page.update()
 
-        # Load messages before starting the background polling task.
-        # The server currently returns at most 50 messages on this request.
+        # Load the latest messages before starting background polling.
         await fetch_new()
 
-        state["initial_loading"] = False
-        messages_view.auto_scroll = True
-        page.update()
-
-        page.run_task(poll)
+        if is_current_chat():
+            messages_view.auto_scroll = True
+            page.update()
+            page.run_task(poll)
 
     def on_disconnect(e):
         app_state["closed"] = True
+        app_state["chat_open"] = False
+        app_state["session_token"] = None
 
     page.on_disconnect = on_disconnect
-
     show_login()
 
     try:
+        # Keep the app alive until Flet cancels the main task.
         await asyncio.Event().wait()
-
-    except asyncio.CancelledError:
+    finally:
         app_state["closed"] = True
+        app_state["chat_open"] = False
+        app_state["session_token"] = None
         await client.aclose()
-        raise
 
 
 ft.run(main)
