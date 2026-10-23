@@ -22,21 +22,17 @@ jobs:
 
       - name: Manually Create Unsigned IPA File
         run: |
-          # 1. Locate where the compiled .app folder went
-          APP_PATH=$(find chatapp/build/flutter/ios -type d -name "*.app" -print -quit)
+          # 1. Grab the exact output path from the Flet action step
+          RAW_OUTPUT="${{ steps.build.outputs.output-path }}"
+          echo "Flet raw output path is: $RAW_OUTPUT"
           
-          if [ -z "$APP_PATH" ]; then
-            echo "Error: Built .app directory not found!"
-            exit 1
-          fi
-          
-          echo "Found compiled app at: $APP_PATH"
-          
-          # 2. Build the exact structure Apple expects for an .ipa (a folder named Payload)
+          # 2. Build the exact payload structure required for an .ipa
           mkdir -p Payload
-          cp -r "$APP_PATH" Payload/
           
-          # 3. Zip the Payload folder and explicitly rename it to .ipa
+          # 3. Copy the compiled .app directory into the Payload folder
+          cp -r "$RAW_OUTPUT/"* Payload/ 2>/dev/null || cp -r "$RAW_OUTPUT" Payload/
+          
+          # 4. Compress the structure and name it explicitly as .ipa
           zip -r SwayChat.ipa Payload
           
           echo "Successfully generated SwayChat.ipa"
