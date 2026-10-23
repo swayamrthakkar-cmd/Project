@@ -1,4 +1,3 @@
-
 [project]
 name = "chatapp"
 version = "0.1.0"
@@ -35,4 +34,3 @@ bundle_id = "com.swayamthakkar.swaychat"
 
 [tool.flet.app]
 path = "src"
-module = "main"

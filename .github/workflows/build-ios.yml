@@ -1,4 +1,3 @@
-
 name: Build Flet iOS App
 
 on:
@@ -17,7 +16,6 @@ jobs:
         with:
           target: ipa
           working-directory: chatapp
-          extra-args: "--module-name main"
           archive-output: true
 
       - name: Upload iOS build
