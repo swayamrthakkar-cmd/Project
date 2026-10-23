@@ -18,5 +18,4 @@ jobs:
         uses: flet-dev/flet-build-action@v1
         with:
           target: ipa
-          # Tells the builder to look inside your subfolder
-          project-path: chatapp 
+          working-directory: chatapp  # Points the compiler inside your subfolder
