@@ -1,5 +1,5 @@
 
-name: Build Flet iOS App
+name: Build SwayChat IPA
 
 on:
   workflow_dispatch:
@@ -12,37 +12,33 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build Flet iOS app
+      - name: Build iOS IPA
+        id: build
         uses: flet-dev/flet-build-action@v1
         with:
           target: ipa
           working-directory: chatapp
           archive-output: false
 
-      - name: Find generated iOS files
-        if: always()
+      - name: Find IPA
+        id: ipa
+        shell: bash
         run: |
-          echo "===== Searching repository ====="
-          find "$GITHUB_WORKSPACE" -type f \
-            \( -iname "*.ipa" -o -iname "*.zip" -o -name "Info.plist" \) \
-            -print 2>/dev/null || true
+          IPA=$(find chatapp/build/ipa -type f -name "*.ipa" -print -quit)
 
-          echo "===== Searching runner temporary directory ====="
-          find "$RUNNER_TEMP" -type f \
-            \( -iname "*.ipa" -o -iname "*.zip" -o -name "Info.plist" \) \
-            -print 2>/dev/null || true
+          if [ -z "$IPA" ]; then
+            echo "No IPA was generated."
+            echo "Build output:"
+            find chatapp/build/ipa -maxdepth 5 -print
+            exit 1
+          fi
 
-          echo "===== Searching for Xcode archives ====="
-          find "$GITHUB_WORKSPACE" "$RUNNER_TEMP" \
-            -type d -name "*.xcarchive" \
-            -print 2>/dev/null || true
+          echo "path=$IPA" >> "$GITHUB_OUTPUT"
+          echo "Found IPA: $IPA"
 
-      - name: Upload iOS build outputs
-        if: always()
+      - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
-          name: swaychat-ios-build
-          path: |
-            chatapp/build/
-            ${{ runner.temp }}/flet-build-action-archives/
-          if-no-files-found: warn
+          name: swaychat-ipa
+          path: ${{ steps.ipa.outputs.path }}
+          if-no-files-found: error
