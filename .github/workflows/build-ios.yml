@@ -11,7 +11,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build iOS IPA
+      - name: Build iOS App Structure
         id: build
         uses: flet-dev/flet-build-action@v1
         with:
@@ -20,11 +20,30 @@ jobs:
           archive-output: false
           no-sign: true
 
-      - name: Find and Upload IPA
+      - name: Manually Create Unsigned IPA File
+        run: |
+          # 1. Locate where the compiled .app folder went
+          APP_PATH=$(find chatapp/build/flutter/ios -type d -name "*.app" -print -quit)
+          
+          if [ -z "$APP_PATH" ]; then
+            echo "Error: Built .app directory not found!"
+            exit 1
+          fi
+          
+          echo "Found compiled app at: $APP_PATH"
+          
+          # 2. Build the exact structure Apple expects for an .ipa (a folder named Payload)
+          mkdir -p Payload
+          cp -r "$APP_PATH" Payload/
+          
+          # 3. Zip the Payload folder and explicitly rename it to .ipa
+          zip -r SwayChat.ipa Payload
+          
+          echo "Successfully generated SwayChat.ipa"
+
+      - name: Upload Finished IPA
         uses: actions/upload-artifact@v4
         with:
           name: swaychat-ipa
-          # This pattern searches recursively through your entire repository 
-          # for any file ending in .ipa, bypassing rigid path mistakes.
-          path: "**/*.ipa"
+          path: SwayChat.ipa
           if-no-files-found: error
