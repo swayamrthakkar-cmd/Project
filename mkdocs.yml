@@ -1,0 +1,7 @@
+site_name: SwaychatNotifications
+
+theme:
+  name: "material"
+
+plugins:
+  - mkdocstrings
